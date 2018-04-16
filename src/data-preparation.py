@@ -2,37 +2,44 @@ import cv2
 import glob
 import os
 
-def normalize_image(image, toCanny=False):
-    if canny:
+def normalize_image(image, toCanny):
+    image = cv2.resize(image, (350, 350))
+    if toCanny:
         # TODO: Optimize 2nd and 3rd argument (minVal and maxVal)
         image = cv2.Canny(image, 100, 200)
     else:
-        image = cv2.cvtColor(beras, cv2.COLOR_BGR2GRAY)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    image = cv2.resize(beras, (350, 350))
     return image
 
-def prepare_directory(grades):
+def prepare_directory(grades, toCanny):
+    img_types = ['bw', 'canny']
     print('Preparing directory')
     data_dir = '../data'
     if not os.path.exists(data_dir):
         print('Creating data directory')
         os.makedirs(data_dir)
 
-    for grade in grades:
-        grade_data_dir = data_dir + '/{}'.format(grade)
-        if not os.path.exists(grade_data_dir):
-            print('Creating data/{} directory'.format(grade))
-            os.makedirs(grade_data_dir)
-        else:
-            if os.listdir(grade_data_dir) != []:
-                print('Directory {} is not empty, removing old data')
-                filelist = glob.glob(grade_data_dir + '/*')
-                for file in filelist:
-                    os.remove(file)
-    print("Finished preparing directory")
+    for img_type in img_types:
+        type_dir = data_dir + '/{}'.format(img_type)
+        if not os.path.exists(type_dir):
+                print('Creating data/{} directory'.format(img_type))
+                os.makedirs(type_dir)
+        for grade in grades:
+            grade_data_dir = type_dir + '/{}'.format(grade)
+            if not os.path.exists(grade_data_dir):
+                print('Creating data/{}/{} directory'.format(img_type, grade))
+                os.makedirs(grade_data_dir)
+            else:
+                if (toCanny and img_type == 'canny') or (not toCanny and img_type == 'bw'):
+                    if os.listdir(grade_data_dir) != []:
+                        print('Directory {} is not empty, removing old data')
+                        filelist = glob.glob(grade_data_dir + '/*')
+                        for file in filelist:
+                            os.remove(file)
+        print("Finished preparing directory")
 
-def process_raw_images(raw_images_path, grades, toCanny=False):
+def process_raw_images(raw_images_path, grades, toCanny):
     img_type = 'canny' if toCanny else 'bw'
     print('Processing raw beras data...')
     counter_all = 0
@@ -45,7 +52,8 @@ def process_raw_images(raw_images_path, grades, toCanny=False):
             processed_image = normalize_image(frame, toCanny)
             counter_all += 1
             try:
-                cv2.imwrite('../data/{}/{}/{}'.format(img_type, grade, file_number + 1), processed_image)
+                cv2.imwrite('../data/{}/{}/{}.jpg'.format(img_type, grade, file_number + 1), processed_image)
+                print("Data written to " + '../data/{}/{}/{}.jpg'.format(img_type, grade, file_number + 1))
             except:
                 print("Error in processing {}".format(image))
                 counter_failed += 1
@@ -58,11 +66,11 @@ if __name__ == '__main__':
 
     yes = {'yes', 'ye', 'y', ''}
     no = {'no', 'n'}
-    choice = input('Activate canny mode?[Y/n]').lower()
+    choice = input('Activate canny mode?[Y/n] ').lower()
 
-    while choice not in yes or choice not in no:
+    while choice not in yes and choice not in no:
         print('Sorry, did not quite catch that')
-        choice = input('Activate canny mode?[Y/n]').lower()
+        choice = input('Activate canny mode?[Y/n] ').lower()
 
     canny_mode = False
     if choice in yes:
