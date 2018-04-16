@@ -1,14 +1,29 @@
 import cv2
 import glob
+import numpy as np
 import os
 
+from matplotlib import pyplot as plt
+
 def normalize_image(image, toCanny):
-    image = cv2.resize(image, (350, 350))
+
+    image = cv2.resize(image, (500, 500))
+
     if toCanny:
-        # TODO: Optimize 2nd and 3rd argument (minVal and maxVal)
-        image = cv2.Canny(image, 100, 200)
+        # Denoising
+        image = cv2.fastNlMeansDenoisingColored(image, None, 25, 7, 9)
+
+        # Automatically calculate lower and upper bound
+        sigma = 0.33
+
+        grey = np.median(image)
+        lower = int(max(0, (1.0 - sigma) * grey))
+        upper = int(min(255, (1.0 + sigma) * grey))
+
+        image = cv2.Canny(image, lower, upper)
     else:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
 
     return image
 
@@ -33,7 +48,7 @@ def prepare_directory(grades, toCanny):
             else:
                 if (toCanny and img_type == 'canny') or (not toCanny and img_type == 'bw'):
                     if os.listdir(grade_data_dir) != []:
-                        print('Directory {} is not empty, removing old data')
+                        print('Directory is not empty, removing old data')
                         filelist = glob.glob(grade_data_dir + '/*')
                         for file in filelist:
                             os.remove(file)
@@ -81,7 +96,7 @@ if __name__ == '__main__':
 
     path = input('Dataset path: ')
     if os.path.isdir(path):
-        prepare_directory(grades)
+        prepare_directory(grades, canny_mode)
         process_raw_images(path, grades, canny_mode)
     else:
         print('Could not find directory, exiting program')
