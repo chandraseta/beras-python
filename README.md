@@ -1,2 +1,20 @@
-# beras-python
-Training and Analysis of beras with Python3
+# Beras - Python
+Training and analysis of beras with Python3
+
+## Requirements
+
+### Python3
+Before running the program, install Python 3.6:
+* On Linux, open terminal and type: 
+  ```
+  sudo apt-get update
+  sudo apt-get install python3.6
+  ```
+* [Anaconda](https://www.continuum.io/downloads) provides Python3.6 for Windows, macOS, and Linux too.
+
+### OpenCV
+Once you have Python3.6 installed, type the following commands:
+```
+pip3 install opencv-python
+```
+This will enable you to `import cv2`
