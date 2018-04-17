@@ -13,6 +13,9 @@ def normalize_image(image, toCanny):
         # Denoising
         image = cv2.fastNlMeansDenoisingColored(image, None, 25, 7, 9)
 
+        # Add blur
+        image = cv2.GaussianBlur(image, (3,3), 0)
+
         # Automatically calculate lower and upper bound
         sigma = 0.33
 
@@ -48,11 +51,11 @@ def prepare_directory(grades, toCanny):
             else:
                 if (toCanny and img_type == 'canny') or (not toCanny and img_type == 'bw'):
                     if os.listdir(grade_data_dir) != []:
-                        print('Directory is not empty, removing old data')
+                        print('Directory {} is not empty, removing old data'.format(grade_data_dir))
                         filelist = glob.glob(grade_data_dir + '/*')
                         for file in filelist:
                             os.remove(file)
-        print("Finished preparing directory")
+    print("Finished preparing directory")
 
 def process_raw_images(raw_images_path, grades, toCanny):
     img_type = 'canny' if toCanny else 'bw'
@@ -100,4 +103,3 @@ if __name__ == '__main__':
         process_raw_images(path, grades, canny_mode)
     else:
         print('Could not find directory, exiting program')
-
