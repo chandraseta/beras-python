@@ -3,6 +3,8 @@ import glob
 import numpy as np
 import random
 
+from sklearn.neighbors import KNeighborsClassifier
+
 def get_files(img_type, grade, training_set_size):
     files = glob.glob('../data/{}/{}/*'.format(img_type, grade))
     random.shuffle(files)
@@ -23,9 +25,11 @@ def extract_color_histogram(image, bins=(8,8,8)):
     return hist.flatten()
 
 def generate_sets(img_type, grades):
-    training_data = []
+    training_raw_data = []
+    training_features = []
     training_labels = []
-    prediction_data = []
+    prediction_raw_data = []
+    prediction_features = []
     prediction_labels = []
 
     for grade in grades:
@@ -33,35 +37,51 @@ def generate_sets(img_type, grades):
 
         for item in training:
             image = cv2.imread(item)
-            image = img_to_feature_vector(image)
+            pixels = img_to_feature_vector(image)
+            hist = extract_color_histogram(image)
 
-            training_data.append(image)
+            training_raw_data.append(pixels)
+            training_features.append(hist)
             training_labels.append(grades.index(grade))
 
         for item in prediction:
             image = cv2.imread(item)
-            prediction_data.append(image)
+            pixels = img_to_feature_vector(image)
+            hist = extract_color_histogram(image)
+
+            prediction_raw_data.append(pixels)
+            prediction_features.append(hist)
             prediction_labels.append(grades.index(grade))
 
-    return training_data, training_labels, prediction_data, prediction_labels
+    return training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels
 
-def train_data(img_type, grades, k):
-    training_data, training_labels, prediction_data, prediction_labels = generate_sets(img_type, grades)
+def train_data(img_type, grades, k=3):
+    training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
 
-    print('Using KNN algorithm')
-    knn = cv2.ml.KNearest_create()
+    print('Using KNN algorithm with raw pixel')
+    # knn = cv2.ml.KNearest_create()
+    knnRaw = KNeighborsClassifier(n_neighbors=k)
     
     print('Size of training set is {} images'.format(len(training_labels)))
-    knn.train(training_data[0], cv2.ml.ROW_SAMPLE, training_labels[0])
+    # knn.train(training_data[0], cv2.ml.ROW_SAMPLE, training_labels[0])
+    knnRaw.fit(training_raw_data, training_labels)
 
-    correct = 0
-    for idx, image in enumerate(prediction_data):
-        ret, results, neighbours, dist = knn.findNearest(image, k)
-        print('ret\n{}'.format(ret))
-        print('results\n{}'.format(results))
-        print('neighbours\n{}'.format(neightbours))
-        print('dist\n{}'.format(dist))
-        break
+    print('Finished training')
+    accRaw = knnRaw.score(prediction_raw_data, prediction_labels)
+
+    print("Accuracy using raw pixel: {}%".format(accRaw*100))
+
+    print('Using KNN algorithm with histogram')
+    knnHist = KNeighborsClassifier(n_neighbors=k)
+
+    print('Size of training set is {} images'.format(len(training_labels)))
+    # knn.train(training_data[0], cv2.ml.ROW_SAMPLE, training_labels[0])
+    knnHist.fit(training_features, training_labels)
+
+    print('Finished training')
+    accHist = knnHist.score(prediction_raw_data, prediction_labels)
+
+    print("Accuracy using histogram: {}%".format(accHist*100))
 
 
 if __name__ == '__main__':
@@ -84,7 +104,13 @@ if __name__ == '__main__':
 
     img_type = 'canny' if canny_mode else 'bw'
 
-    correct, percentage = train_data(img_type, grades, 3)
+    k = input('Number of neigbours: ')
+
+    while not k.isdigit() or int(k)==0:
+        print('Invalid number, must be a positive')
+        k = input('Number of neigbours: ')
+
+    correct, percentage = train_data(img_type, grades, int(k))
     print('Processed ', correct, ' data correctly')
     print('Accuracy ', percentage, '%')
 
