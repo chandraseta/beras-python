@@ -55,15 +55,17 @@ def generate_sets(img_type, grades):
 
     return training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels
 
+def pca(images, num_component):
+    mean, eigen_vector = cv2.PCACompute(images, mean=None, maxComponents=num_component)
+    return mean, eigen_vector
+
 def train_data(img_type, grades, k=3):
     training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
 
     print('Using KNN algorithm with raw pixel')
-    # knn = cv2.ml.KNearest_create()
     knnRaw = KNeighborsClassifier(n_neighbors=k)
     
     print('Size of training set is {} images'.format(len(training_labels)))
-    # knn.train(training_data[0], cv2.ml.ROW_SAMPLE, training_labels[0])
     knnRaw.fit(training_raw_data, training_labels)
 
     print('Finished training')
@@ -75,13 +77,38 @@ def train_data(img_type, grades, k=3):
     knnHist = KNeighborsClassifier(n_neighbors=k)
 
     print('Size of training set is {} images'.format(len(training_labels)))
-    # knn.train(training_data[0], cv2.ml.ROW_SAMPLE, training_labels[0])
     knnHist.fit(training_features, training_labels)
 
     print('Finished training')
     accHist = knnHist.score(prediction_raw_data, prediction_labels)
 
     print("Accuracy using histogram: {}%".format(accHist*100))
+
+def train_data_opencv(img_type, grades, k=3):
+    training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
+    training_raw_data = np.array(training_raw_data, dtype='f')
+    training_features = np.array(training_features, dtype='f')
+    training_labels = np.array(training_labels, dtype='f')
+    prediction_raw_data = np.array(prediction_raw_data, dtype='f')
+    prediction_features = np.array(prediction_features,dtype='f')
+    prediction_labels = np.array(prediction_labels, dtype='f')
+
+    print('Using KNN classifier with raw pixel')
+    knn = cv2.ml.KNearest_create()
+    knn.train(training_raw_data, cv2.ml.ROW_SAMPLE, training_labels)
+    print('Finished training')
+
+    print('Predicting images')
+    ret, results, neighbours, dist = knn.findNearest(prediction_raw_data, k)
+    
+    correct = 0
+    for i in range (len(prediction_labels)):
+        if results[i] == prediction_labels[i]:
+            print('Correctly identified image {}'.format(i))
+            correct += 1
+        
+    print("Got {} correct out of {}".format(correct, len(prediction_labels)))
+    print("Accuracy = {}%".format(correct/len(prediction_labels * 100)))
 
 
 if __name__ == '__main__':
@@ -110,7 +137,5 @@ if __name__ == '__main__':
         print('Invalid number, must be a positive')
         k = input('Number of neigbours: ')
 
-    correct, percentage = train_data(img_type, grades, int(k))
-    print('Processed ', correct, ' data correctly')
-    print('Accuracy ', percentage, '%')
+    train_data_opencv(img_type, grades, int(k))
 
