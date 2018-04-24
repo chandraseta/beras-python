@@ -110,6 +110,30 @@ def train_data_opencv(img_type, grades, k=3):
     print("Got {} correct out of {}".format(correct, len(prediction_labels)))
     print("Accuracy = {}%".format(correct/len(prediction_labels * 100)))
 
+def predict_image(image, img_type, grades, k=3):
+    training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
+    training_raw_data = np.array(training_raw_data, dtype='f')
+    training_features = np.array(training_features, dtype='f')
+    training_labels = np.array(training_labels, dtype='f')
+
+    pixels = img_to_feature_vector(image)
+    hist = extract_color_histogram(image)
+
+    prediction_raw_data.append(pixels)
+    prediction_features.append(hist)
+
+    prediction_raw_data = np.array(prediction_raw_data, dtype='f')
+    prediction_features = np.array(prediction_features, dtype='f')
+
+    print('Using KNN classifier with raw pixel')
+    knn = cv2.ml.KNearest_create()
+    # Change training_raw_data to training_features to use histogram instead of raw pixel
+    knn.train(training_raw_data, cv2.ml.ROW_SAMPLE, training_labels)
+
+    # Change prediction_raw_data to prediction_features accordingly
+    ret, results, neighbours, dist = knn.findNearest(prediction_raw_data, k)
+    
+    return results[0]
 
 if __name__ == '__main__':
     grades = ['A', 'B', 'C']
