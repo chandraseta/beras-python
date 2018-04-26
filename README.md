@@ -7,8 +7,8 @@ Training and analysis of beras with Python3
 Before running the program, install Python 3.6:
 * On Linux, open terminal and type: 
   ```
-  sudo apt-get update
-  sudo apt-get install python3.6
+  sudo apt update
+  sudo apt install python3.6
   ```
 * [Anaconda](https://www.continuum.io/downloads) provides Python3.6 for Windows, macOS, and Linux too.
 
@@ -27,7 +27,17 @@ pip3 install matplotlib
 ```
 This will enable you to import `pyplot`
 
-### Dataset
+### Scikit-Learn
+```
+pip3 install scikit-learn
+```
+
+### Imutils
+```
+pip3 install imutils
+```
+
+## Dataset
 Dataset subdirectories should be in the following format:
 ```
 ├── A
