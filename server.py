@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, json
+from flask import Flask, jsonify, request, redirect
 from werkzeug.utils import secure_filename
 
 import cv2
@@ -16,9 +16,34 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-    
+
+def normalize_image(image, toCanny):
+
+    image = cv2.resize(image, (500, 500))
+
+    if toCanny:
+        # Denoising
+        image = cv2.fastNlMeansDenoisingColored(image, None, 25, 7, 9)
+
+        # Add blur
+        image = cv2.GaussianBlur(image, (3,3), 0)
+
+        # Automatically calculate lower and upper bound
+        sigma = 0.33
+
+        grey = np.median(image)
+        lower = int(max(0, (1.0 - sigma) * grey))
+        upper = int(min(255, (1.0 + sigma) * grey))
+
+        image = cv2.Canny(image, lower, upper)
+    else:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+
+    return image
+
 def get_files(img_type, grade, training_set_size):
-    files = glob.glob('../data/{}/{}/*'.format(img_type, grade))
+    files = glob.glob('./data/{}/{}/*'.format(img_type, grade))
     random.shuffle(files)
     training = files[:int(len(files) * training_set_size)]
     prediction = files[-int(len(files) * (1 - training_set_size)):]
@@ -45,7 +70,7 @@ def generate_sets(img_type, grades):
     prediction_labels = []
 
     for grade in grades:
-        training, prediction = get_files(img_type, grade, 0.8)
+        training, prediction = get_files(img_type, grade, 1)
 
         for item in training:
             image = cv2.imread(item)
@@ -105,14 +130,23 @@ def predict_image(image, img_type, grades, k=3):
     training_features = np.array(training_features, dtype='f')
     training_labels = np.array(training_labels, dtype='f')
 
-    pixels = img_to_feature_vector(image)
-    hist = extract_color_histogram(image)
+    prediction_raw_data = []
+    prediction_features = []
 
-    prediction_raw_data.append(pixels)
-    prediction_features.append(hist)
+    pixels = img_to_feature_vector(image)
+    # hist = extract_color_histogram(image)
+
+    opt_pixels = []
+    for pixel in pixels:
+        opt_pixels.append(pixel)
+        opt_pixels.append(pixel)
+        opt_pixels.append(pixel)
+
+    prediction_raw_data.append(opt_pixels)
+    # prediction_features.append(hist)
 
     prediction_raw_data = np.array(prediction_raw_data, dtype='f')
-    prediction_features = np.array(prediction_features, dtype='f')
+    # prediction_features = np.array(prediction_features, dtype='f')
 
     print('Using KNN classifier with raw pixel')
     knn = cv2.ml.KNearest_create()
@@ -139,25 +173,25 @@ def upload_file():
             file.save(file_path)
             
             #classify_image and return JSON
-            grades = ['A', 'B', 'C']
+            grades = ['A', 'B', 'C']    
             image = cv2.imread(file_path)
-            image = np.array(image, dtype='f')
-            result = predict_image(image, 'canny', grades, 3)
+            processed_image = normalize_image(image, True)
             
-            result_grade = grades[result]
+            result = predict_image(processed_image, 'canny', grades, 3)
+            
+            result_grade = grades[int(result)]
 
             reply = {
                 "success" : True,
                 "class" : result_grade
             }
-
+            return jsonify(reply)
         else:
             reply = {
                 "success" : False,
                 "class" : "Z"
             }
-
-        return jsonify(payload)
+            return jsonify(reply)
 
     return '''
         <html>
