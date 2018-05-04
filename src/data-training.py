@@ -21,7 +21,6 @@ def extract_color_histogram(image, bins=(8,8,8)):
     hist = cv2.calcHist([hsv], [0,1,2], None, bins, [0, 180, 0, 256, 0, 256])
 
     cv2.normalize(hist, hist)
-
     return hist.flatten()
 
 def generate_sets(img_type, grades):
@@ -140,26 +139,35 @@ if __name__ == '__main__':
 
     yes = {'yes', 'ye', 'y', ''}
     no = {'no', 'n'}
-    choice = input('Use canny?[Y/n] ').lower()
+    # choice = input('Use canny?[Y/n] ').lower()
 
-    while choice not in yes and choice not in no:
-        print('Sorry, did not quite catch that')
-        choice = input('Use canny?[Y/n] ').lower()
+    # while choice not in yes and choice not in no:
+    #     print('Sorry, did not quite catch that')
+    #     choice = input('Use canny?[Y/n] ').lower()
 
-    canny_mode = False
-    if choice in yes:
-        canny_mode = True
-        print("Canny mode activated")
-    else:
-        print("Black and White mode activated")
+    # canny_mode = False
+    # if choice in yes:
+    #     canny_mode = True
+    #     print("Canny mode activated")
+    # else:
+    #     print("Black and White mode activated")
 
-    img_type = 'canny' if canny_mode else 'bw'
+    # img_type = 'canny' if canny_mode else 'bw'
 
-    k = input('Number of neigbours: ')
+    # k = input('Number of neigbours: ')
 
-    while not k.isdigit() or int(k)==0:
-        print('Invalid number, must be a positive')
-        k = input('Number of neigbours: ')
+    # while not k.isdigit() or int(k)==0:
+    #     print('Invalid number, must be a positive')
+    #     k = input('Number of neigbours: ')
 
-    train_data_opencv(img_type, grades, int(k))
+    # train_data_opencv(img_type, grades, int(k))
+
+    file_path = input('File path: ')
+
+    file_path = '../' + file_path
+
+    image = cv2.imread(file_path)
+    result = predict_image(image, 'canny', grades, 3)
+    
+    result_grade = grades[result]
 

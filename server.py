@@ -1,10 +1,14 @@
 from flask import Flask, request, redirect, json
 from werkzeug.utils import secure_filename
-import random
-import os
 
-UPLOAD_FOLDER = '.\uploads'
-ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
+import cv2
+import glob
+import numpy as np
+import os
+import random
+
+UPLOAD_FOLDER = './uploads'
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -12,8 +16,115 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    
+def get_files(img_type, grade, training_set_size):
+    files = glob.glob('../data/{}/{}/*'.format(img_type, grade))
+    random.shuffle(files)
+    training = files[:int(len(files) * training_set_size)]
+    prediction = files[-int(len(files) * (1 - training_set_size)):]
 
-@app.route("/",methods=["GET","POST"])
+    return training, prediction
+
+def img_to_feature_vector(image):
+    return image.flatten()
+
+def extract_color_histogram(image, bins=(8,8,8)):
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hist = cv2.calcHist([hsv], [0,1,2], None, bins, [0, 180, 0, 256, 0, 256])
+
+    cv2.normalize(hist, hist)
+
+    return hist.flatten()
+
+def generate_sets(img_type, grades):
+    training_raw_data = []
+    training_features = []
+    training_labels = []
+    prediction_raw_data = []
+    prediction_features = []
+    prediction_labels = []
+
+    for grade in grades:
+        training, prediction = get_files(img_type, grade, 0.8)
+
+        for item in training:
+            image = cv2.imread(item)
+            pixels = img_to_feature_vector(image)
+            hist = extract_color_histogram(image)
+
+            training_raw_data.append(pixels)
+            training_features.append(hist)
+            training_labels.append(grades.index(grade))
+
+        for item in prediction:
+            image = cv2.imread(item)
+            pixels = img_to_feature_vector(image)
+            hist = extract_color_histogram(image)
+
+            prediction_raw_data.append(pixels)
+            prediction_features.append(hist)
+            prediction_labels.append(grades.index(grade))
+
+    return training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels
+
+def pca(images, num_component):
+    mean, eigen_vector = cv2.PCACompute(images, mean=None, maxComponents=num_component)
+    return mean, eigen_vector
+
+def train_data_opencv(img_type, grades, k=3):
+    training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
+    training_raw_data = np.array(training_raw_data, dtype='f')
+    training_features = np.array(training_features, dtype='f')
+    training_labels = np.array(training_labels, dtype='f')
+    prediction_raw_data = np.array(prediction_raw_data, dtype='f')
+    prediction_features = np.array(prediction_features,dtype='f')
+    prediction_labels = np.array(prediction_labels, dtype='f')
+
+    print('Using KNN classifier with raw pixel')
+    knn = cv2.ml.KNearest_create()
+    knn.train(training_raw_data, cv2.ml.ROW_SAMPLE, training_labels)
+    print('Finished training')
+
+    print('Predicting images')
+    ret, results, neighbours, dist = knn.findNearest(prediction_raw_data, k)
+    
+    correct = 0
+    for i in range (len(prediction_labels)):
+        if results[i] == prediction_labels[i]:
+            print('Correctly identified image {}'.format(i))
+            correct += 1
+        
+    print("Got {} correct out of {}".format(correct, len(prediction_labels)))
+    print("Accuracy = {}%".format(correct/len(prediction_labels) * 100))
+
+    return (correct/len(prediction_labels) * 100)
+
+def predict_image(image, img_type, grades, k=3):
+    training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
+    training_raw_data = np.array(training_raw_data, dtype='f')
+    training_features = np.array(training_features, dtype='f')
+    training_labels = np.array(training_labels, dtype='f')
+
+    pixels = img_to_feature_vector(image)
+    hist = extract_color_histogram(image)
+
+    prediction_raw_data.append(pixels)
+    prediction_features.append(hist)
+
+    prediction_raw_data = np.array(prediction_raw_data, dtype='f')
+    prediction_features = np.array(prediction_features, dtype='f')
+
+    print('Using KNN classifier with raw pixel')
+    knn = cv2.ml.KNearest_create()
+    # Change training_raw_data to training_features to use histogram instead of raw pixel
+    knn.train(training_raw_data, cv2.ml.ROW_SAMPLE, training_labels)
+
+    # Change prediction_raw_data to prediction_features accordingly
+    ret, results, neighbours, dist = knn.findNearest(prediction_raw_data, k)
+    
+    return results[0]
+
+@app.route("/predict/",methods=["GET","POST"])
 def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
@@ -23,18 +134,38 @@ def upload_file():
             return "No File Selected"
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename) #TODO: Hash filename
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            file.save(file_path)
             
             #classify_image and return JSON
+            grades = ['A', 'B', 'C']
+            image = cv2.imread(file_path)
+            image = np.array(image, dtype='f')
+            result = predict_image(image, 'canny', grades, 3)
             
-            return "Good"
+            result_grade = grades[result]
+
+            reply = {
+                "success" : True,
+                "class" : result_grade
+            }
+
+        else:
+            reply = {
+                "success" : False,
+                "class" : "Z"
+            }
+
+        return jsonify(payload)
+
     return '''
         <html>
         <head>
         <title> Classifier </title>
         </head>
         <body>
-            <h1> Whoops! </h1>
+            <h1> Whoops! </h1>result_grade
             <p> You've seemed to access the wrong URL </p>
             <form method="post" enctype="multipart/form-data">
       <p><input type=file name=file>
