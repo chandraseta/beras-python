@@ -162,33 +162,46 @@ def predict_image(image, img_type, grades, k=3):
 def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
-            return "No File Part"
+            reply = {
+                "success" : False,
+                "message" : "No file sent",
+                "class" : "Z"
+            }
+            return jsonify(reply)
         file = request.files['file']
         if file.filename == '':
-            return "No File Selected"
+            reply = {
+                "success" : False,
+                "message" : "No file selected",
+                "class" : "Z"
+            }
+            return jsonify(reply)
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename) #TODO: Hash filename
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            # filename = secure_filename(file.filename) #TODO: Hash filename
+            # file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-            file.save(file_path)
+            # file.save(file_path)
             
-            #classify_image and return JSON
+            # #classify_image and return JSON
             grades = ['A', 'B', 'C']    
-            image = cv2.imread(file_path)
-            processed_image = normalize_image(image, True)
+            # image = cv2.imread(file_path)
+            # processed_image = normalize_image(image, True)
             
-            result = predict_image(processed_image, 'canny', grades, 3)
+            # result = predict_image(processed_image, 'canny', grades, 3)
             
-            result_grade = grades[int(result)]
+            # result_grade = grades[int(result)]
+            result_grade = random.choice(grades)
 
             reply = {
                 "success" : True,
+                "message" : "",
                 "class" : result_grade
             }
             return jsonify(reply)
         else:
             reply = {
                 "success" : False,
+                "message" : "File not allowed",
                 "class" : "Z"
             }
             return jsonify(reply)
@@ -196,15 +209,15 @@ def upload_file():
     return '''
         <html>
         <head>
-        <title> Classifier </title>
+            <title> Classifier </title>
         </head>
         <body>
             <h1> Whoops! </h1>result_grade
             <p> You've seemed to access the wrong URL </p>
             <form method="post" enctype="multipart/form-data">
-      <p><input type=file name=file>
-         <input type=submit value=Upload>
-    </form>
+                <input type=file name=file>
+                <input type=submit value=Upload>
+            </form>
         </body>
         </html>
     '''
