@@ -167,19 +167,19 @@ def upload_file():
         if file.filename == '':
             return "No File Selected"
         if file and allowed_file(file.filename):
-            # filename = secure_filename(file.filename) #TODO: Hash filename
-            # file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            filename = secure_filename(file.filename) #TODO: Hash filename
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-            # file.save(file_path)
+            file.save(file_path)
             
             # #classify_image and return JSON
-            grades = ['A', 'B', 'C']    
-            # image = cv2.imread(file_path)
-            # processed_image = normalize_image(image, True)
+            grades = ['A', 'B', 'C'] 
+            image = cv2.imread(file_path)
+            processed_image = normalize_image(image, True)
             
-            # result = predict_image(processed_image, 'canny', grades, 3)
+            result = predict_image(processed_image, 'canny', grades, 3)
             
-            # result_grade = grades[int(result)]
+            result_grade = grades[int(result)]
             result_grade = random.choice(grades)
 
             reply = {
