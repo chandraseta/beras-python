@@ -185,6 +185,7 @@ def upload_file():
             #classify_image and return JSON
             grades = ['A', 'B', 'C']
             image = cv2.imread(file_path)
+            print(image.shape)
             processed_image = normalize_image(image, True)
             
             result = predict_image(processed_image, 'canny', grades, 3)
