@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, redirect
 from werkzeug.utils import secure_filename
+from sklearn.externals import joblib
 
 import cv2
 import glob
@@ -17,11 +18,10 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def normalize_image(image, toCanny):
-
+def normalize_image(image, method):
     image = cv2.resize(image, (500, 500))
 
-    if toCanny:
+    if (method == 1):
         # Denoising
         image = cv2.fastNlMeansDenoisingColored(image, None, 25, 7, 9)
 
@@ -36,9 +36,8 @@ def normalize_image(image, toCanny):
         upper = int(min(255, (1.0 + sigma) * grey))
 
         image = cv2.Canny(image, lower, upper)
-    else:
+    elif (method == 2):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
 
     return image
 
@@ -158,6 +157,26 @@ def predict_image(image, img_type, grades, k=3):
     
     return results[0]
 
+def predict_image_sk(image, img_type, k=3):
+    if (img_type == 'canny'):
+        knn = joblib.load('./model/canny_knnHist.pkl')
+        
+        prediction_data = []
+        # Using hist
+        hist = extract_color_histogram(image)
+        prediction_data.append(hist)
+        
+        return (knn.predict(prediction_data)[0])
+    else:
+        knn = joblib.load('./model/bw_knnHist.pkl')
+
+        prediction_data = []
+        # Using hist
+        hist = extract_color_histogram(image)
+        prediction_data.append(hist)
+
+        return (knn.predict(prediction_data)[0])
+
 @app.route("/predict/",methods=["GET","POST"])
 def upload_file():
     if request.method == 'POST':
@@ -186,9 +205,11 @@ def upload_file():
             grades = ['A', 'B', 'C']
             image = cv2.imread(file_path)
             print("Image shape: " + str(image.shape))
-            processed_image = normalize_image(image, True)
+            processed_image = normalize_image(image, 3)
             
-            result = predict_image(processed_image, 'canny', grades, 3)
+            # result = predict_image(processed_image, 'canny', grades, 3)
+
+            result = predict_image_sk(image, 'canny', 3)
             
             result_grade = grades[int(result)]
             # result_grade = random.choice(grades)
