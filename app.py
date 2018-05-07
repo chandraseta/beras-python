@@ -62,10 +62,8 @@ def extract_color_histogram(image, bins=(8,8,8)):
 
 def generate_sets(img_type, grades):
     training_raw_data = []
-    training_features = []
     training_labels = []
     prediction_raw_data = []
-    prediction_features = []
     prediction_labels = []
 
     for grade in grades:
@@ -74,34 +72,28 @@ def generate_sets(img_type, grades):
         for item in training:
             image = cv2.imread(item)
             pixels = img_to_feature_vector(image)
-            hist = extract_color_histogram(image)
 
             training_raw_data.append(pixels)
-            training_features.append(hist)
             training_labels.append(grades.index(grade))
 
         for item in prediction:
             image = cv2.imread(item)
             pixels = img_to_feature_vector(image)
-            hist = extract_color_histogram(image)
 
             prediction_raw_data.append(pixels)
-            prediction_features.append(hist)
             prediction_labels.append(grades.index(grade))
 
-    return training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels
+    return training_raw_data, training_labels, prediction_raw_data, prediction_labels
 
 def pca(images, num_component):
     mean, eigen_vector = cv2.PCACompute(images, mean=None, maxComponents=num_component)
     return mean, eigen_vector
 
 def train_data_opencv(img_type, grades, k=3):
-    training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
+    training_raw_data, training_labels, prediction_raw_data, prediction_labels = generate_sets(img_type, grades)
     training_raw_data = np.array(training_raw_data, dtype='f')
-    training_features = np.array(training_features, dtype='f')
     training_labels = np.array(training_labels, dtype='f')
     prediction_raw_data = np.array(prediction_raw_data, dtype='f')
-    prediction_features = np.array(prediction_features,dtype='f')
     prediction_labels = np.array(prediction_labels, dtype='f')
 
     print('Using KNN classifier with raw pixel')
@@ -124,35 +116,20 @@ def train_data_opencv(img_type, grades, k=3):
     return (correct/len(prediction_labels) * 100)
 
 def predict_image(image, img_type, grades, k=3):
-    training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
+    training_raw_data, training_labels, prediction_raw_data, prediction_labels = generate_sets(img_type, grades) 
     training_raw_data = np.array(training_raw_data, dtype='f')
-    training_features = np.array(training_features, dtype='f')
     training_labels = np.array(training_labels, dtype='f')
 
     prediction_raw_data = []
-    prediction_features = []
 
     pixels = img_to_feature_vector(image)
-    # hist = extract_color_histogram(image)
 
-    opt_pixels = []
-    for pixel in pixels:
-        opt_pixels.append(pixel)
-        opt_pixels.append(pixel)
-        opt_pixels.append(pixel)
-
-    prediction_raw_data.append(opt_pixels)
-    # prediction_features.append(hist)
-
+    prediction_raw_data.append(pixels)
     prediction_raw_data = np.array(prediction_raw_data, dtype='f')
-    # prediction_features = np.array(prediction_features, dtype='f')
 
     print('Using KNN classifier with raw pixel')
     knn = cv2.ml.KNearest_create()
-    # Change training_raw_data to training_features to use histogram instead of raw pixel
     knn.train(training_raw_data, cv2.ml.ROW_SAMPLE, training_labels)
-
-    # Change prediction_raw_data to prediction_features accordingly
     ret, results, neighbours, dist = knn.findNearest(prediction_raw_data, k)
     
     return results[0]
@@ -207,12 +184,10 @@ def upload_file():
             print("Image shape: " + str(image.shape))
             processed_image = normalize_image(image, 3)
             
-            # result = predict_image(processed_image, 'canny', grades, 3)
-
-            result = predict_image_sk(image, 'canny', 3)
+            result = predict_image(processed_image, 'canny', grades, 1)
+            # result = predict_image_sk(image, 'canny', 3)
             
             result_grade = grades[int(result)]
-            # result_grade = random.choice(grades)
 
             os.remove(file_path)
 
