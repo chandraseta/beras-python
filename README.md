@@ -55,11 +55,12 @@ The following table contains accuracy of each background with varying k (number 
 | Background  | k=1 | k=3 | k=5 | k=10 | k=15 |
 |:------------|:---:|:---:|:---:|:----:|:----:|
 | Black       | 70,1% | 66,7% | 47,8% | 33,3% | 33,3% |
-| Red         |     |     |     |      |      |
+| Red         | 62,6% | 51,8% | 44,4% | 44,4% | 33,3% |
 | White       | 33,3% | 33,3% | 33,3% | 33,3% | 33,3% |
 
 Note:
 - Accuracy for black background decreases as k increases. This might be caused by the small size of dataset. Larger k means the algorithm is more suspectible to overfit.
+- Accuracy for red background is similar to accuracy for black background but slightly worse.
 - Accuracy of white background with Canny is constant at 33,3% because, during preprocessing, the program generated completely black image. This means Canny failed to detect any edge of rice inside the image with white background. This also causes the rice program to always return **Class A** with any testing data.
 
 ### Black and White
@@ -68,9 +69,10 @@ The following table contains accuracy of each background with varying k (number 
 | Background  | k=1 | k=3 | k=5 | k=10 | k=15 |
 |:------------|:---:|:---:|:---:|:----:|:----:|
 | Black       | 81,1% | 70,1% | 62,6% | 41,1% | 33,3% |
-| Red         |     |     |     |      |      |
+| Red         | 70,1% | 66,7% | 55,6% | 50,2% | 55,6% |
 | White       | 81,1% | 66,7% | 62,6% | 36,7% | 62,6% |
 
 Note:
 - Accuracy for black background decreases as k increases. This might be caused by the small size of dataset. Larger k means the algorithm is more suspectible to overfit.
+- Accuracy for red background is decent, but not as good as the black background. The accuracy dips slightly at k=10 and increases again at k=15.
 - Accuracy for white background, k=10 is somewhat an anomaly. The program mostly returns **Class C** during testing. This is quite confusing because when k=15, the accuracy goes back up to 62,6%.
