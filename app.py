@@ -184,7 +184,7 @@ def upload_file():
             print("Image shape: " + str(image.shape))
             processed_image = normalize_image(image, 3)
             
-            result = predict_image(processed_image, 'canny', grades, 1)
+            result = predict_image(processed_image, 'bw', grades, 1)
             # result = predict_image_sk(image, 'canny', 3)
             
             result_grade = grades[int(result)]
