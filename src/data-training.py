@@ -100,6 +100,7 @@ def train_data_opencv(img_type, grades, k=3):
     print('Predicting images')
     ret, results, neighbours, dist = knn.findNearest(prediction_raw_data, k)
     
+    print(results)
     correct = 0
     for i in range (len(prediction_labels)):
         if results[i] == prediction_labels[i]:
@@ -107,7 +108,7 @@ def train_data_opencv(img_type, grades, k=3):
             correct += 1
         
     print("Got {} correct out of {}".format(correct, len(prediction_labels)))
-    print("Accuracy = {}%".format(correct/len(prediction_labels * 100)))
+    print("Accuracy = {}%".format(correct/len(prediction_labels) * 100))
 
 def predict_image(image, img_type, grades, k=3):
     training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
@@ -116,13 +117,12 @@ def predict_image(image, img_type, grades, k=3):
     training_labels = np.array(training_labels, dtype='f')
 
     pixels = img_to_feature_vector(image)
-    hist = extract_color_histogram(image)
+    # hist = extract_color_histogram(image)
 
     prediction_raw_data.append(pixels)
-    prediction_features.append(hist)
+    # prediction_features.append(hist)
 
     prediction_raw_data = np.array(prediction_raw_data, dtype='f')
-    prediction_features = np.array(prediction_features, dtype='f')
 
     print('Using KNN classifier with raw pixel')
     knn = cv2.ml.KNearest_create()
@@ -139,35 +139,36 @@ if __name__ == '__main__':
 
     yes = {'yes', 'ye', 'y', ''}
     no = {'no', 'n'}
-    # choice = input('Use canny?[Y/n] ').lower()
+    choice = input('Use canny?[Y/n] ').lower()
 
-    # while choice not in yes and choice not in no:
-    #     print('Sorry, did not quite catch that')
-    #     choice = input('Use canny?[Y/n] ').lower()
+    while choice not in yes and choice not in no:
+        print('Sorry, did not quite catch that')
+        choice = input('Use canny?[Y/n] ').lower()
 
-    # canny_mode = False
-    # if choice in yes:
-    #     canny_mode = True
-    #     print("Canny mode activated")
-    # else:
-    #     print("Black and White mode activated")
+    canny_mode = False
+    if choice in yes:
+        canny_mode = True
+        print("Canny mode activated")
+    else:
+        print("Black and White mode activated")
 
-    # img_type = 'canny' if canny_mode else 'bw'
+    img_type = 'canny' if canny_mode else 'bw'
 
-    # k = input('Number of neigbours: ')
+    k = input('Number of neigbours: ')
 
-    # while not k.isdigit() or int(k)==0:
-    #     print('Invalid number, must be a positive')
-    #     k = input('Number of neigbours: ')
+    while not k.isdigit() or int(k)==0:
+        print('Invalid number, must be a positive')
+        k = input('Number of neigbours: ')
 
-    # train_data_opencv(img_type, grades, int(k))
+    train_data_opencv(img_type, grades, int(k))
 
-    file_path = input('File path: ')
+    ### PREDICTION ###
+    # file_path = input('File path: ')
 
-    file_path = '../' + file_path
+    # file_path = '../' + file_path
 
-    image = cv2.imread(file_path)
-    result = predict_image(image, 'canny', grades, 3)
+    # image = cv2.imread(file_path)
+    # result = predict_image(image, 'canny', grades, 3)
     
-    result_grade = grades[result]
+    # result_grade = grades[result]
 
