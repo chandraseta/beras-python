@@ -46,3 +46,31 @@ Dataset subdirectories should be in the following format:
 ```
 Where each subdirectory contains **jpg** files, naming does not affect the program.
 Image in subdirectory A means the image belongs to class A in classification, and is also true for B and C.
+
+## Analysis
+All testing is done individually for every background (black, red, and white). Each category is then splitted randomly with 80:20 training to testing data ratio.
+### Canny
+The following table contains accuracy of each background with varying k (number of neighbours) for the kNN algorithm using Canny edge detection.
+
+| Background  | k=1 | k=3 | k=5 | k=10 | k=15 |
+|:------------|:---:|:---:|:---:|:----:|:----:|
+| Black       | 70,1% | 66,7% | 47,8% | 33,3% | 33,3% |
+| Red         |     |     |     |      |      |
+| White       | 33,3% | 33,3% | 33,3% | 33,3% | 33,3% |
+
+Note:
+- Accuracy for black background decreases as k increases. This might be caused by the small size of dataset. Larger k means the algorithm is more suspectible to overfit.
+- Accuracy of white background with Canny is constant at 33,3% because, during preprocessing, the program generated completely black image. This means Canny failed to detect any edge of rice inside the image with white background. This also causes the rice program to always return **Class A** with any testing data.
+
+### Black and White
+The following table contains accuracy of each background with varying k (number of neighbours) for the kNN algorithm using grayscale image.
+
+| Background  | k=1 | k=3 | k=5 | k=10 | k=15 |
+|:------------|:---:|:---:|:---:|:----:|:----:|
+| Black       | 81,1% | 70,1% | 62,6% | 41,1% | 33,3% |
+| Red         |     |     |     |      |      |
+| White       | 81,1% | 66,7% | 62,6% | 36,7% | 62,6% |
+
+Note:
+- Accuracy for black background decreases as k increases. This might be caused by the small size of dataset. Larger k means the algorithm is more suspectible to overfit.
+- Accuracy for white background, k=10 is somewhat an anomaly. The program mostly returns **Class C** during testing. This is quite confusing because when k=15, the accuracy goes back up to 62,6%.
