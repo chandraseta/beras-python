@@ -124,7 +124,13 @@ def predict_image(image, img_type, grades, k=3):
 
     pixels = img_to_feature_vector(image)
 
-    prediction_raw_data.append(pixels)
+    opt_pixel = []
+    for pixel in pixels:
+        opt_pixel.append(pixel)
+        opt_pixel.append(pixel)
+        opt_pixel.append(pixel)
+
+    prediction_raw_data.append(opt_pixel)
     prediction_raw_data = np.array(prediction_raw_data, dtype='f')
 
     print('Using KNN classifier with raw pixel')
@@ -182,7 +188,7 @@ def upload_file():
             grades = ['A', 'B', 'C']
             image = cv2.imread(file_path)
             print("Image shape: " + str(image.shape))
-            processed_image = normalize_image(image, 3)
+            processed_image = normalize_image(image, 2)
             
             result = predict_image(processed_image, 'bw', grades, 1)
             # result = predict_image_sk(image, 'canny', 3)
