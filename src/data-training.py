@@ -3,8 +3,6 @@ import glob
 import numpy as np
 import random
 
-from sklearn.neighbors import KNeighborsClassifier
-
 def get_files(img_type, grade, training_set_size):
     files = glob.glob('../data/{}/{}/*'.format(img_type, grade))
     random.shuffle(files)
@@ -16,12 +14,12 @@ def get_files(img_type, grade, training_set_size):
 def img_to_feature_vector(image):
     return image.flatten()
 
-def extract_color_histogram(image, bins=(8,8,8)):
+def extract_color_histogram(image, bins=(8,8,1)):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    hist = cv2.calcHist([hsv], [0,1,2], None, bins, [0, 180, 0, 256, 0, 256])
+    hist = cv2.calcHist([hsv], [0,1,2], None, bins, [0, 255, 0, 256, 0, 255])
 
     cv2.normalize(hist, hist)
-    return hist.flatten()
+    return hist
 
 def generate_sets(img_type, grades):
     training_raw_data = []
@@ -57,31 +55,6 @@ def generate_sets(img_type, grades):
 def pca(images, num_component):
     mean, eigen_vector = cv2.PCACompute(images, mean=None, maxComponents=num_component)
     return mean, eigen_vector
-
-def train_data(img_type, grades, k=3):
-    training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
-
-    print('Using KNN algorithm with raw pixel')
-    knnRaw = KNeighborsClassifier(n_neighbors=k)
-    
-    print('Size of training set is {} images'.format(len(training_labels)))
-    knnRaw.fit(training_raw_data, training_labels)
-
-    print('Finished training')
-    accRaw = knnRaw.score(prediction_raw_data, prediction_labels)
-
-    print("Accuracy using raw pixel: {}%".format(accRaw*100))
-
-    print('Using KNN algorithm with histogram')
-    knnHist = KNeighborsClassifier(n_neighbors=k)
-
-    print('Size of training set is {} images'.format(len(training_labels)))
-    knnHist.fit(training_features, training_labels)
-
-    print('Finished training')
-    accHist = knnHist.score(prediction_raw_data, prediction_labels)
-
-    print("Accuracy using histogram: {}%".format(accHist*100))
 
 def train_data_opencv(img_type, grades, k=3):
     training_raw_data, training_features, training_labels, prediction_raw_data, prediction_features, prediction_labels = generate_sets(img_type, grades)
@@ -135,39 +108,40 @@ def predict_image(image, img_type, grades, k=3):
     return results[0]
 
 if __name__ == '__main__':
-    grades = ['A', 'B', 'C']
+    # grades = ['A', 'B', 'C']
 
-    yes = {'yes', 'ye', 'y', ''}
-    no = {'no', 'n'}
-    choice = input('Use canny?[Y/n] ').lower()
+    # yes = {'yes', 'ye', 'y', ''}
+    # no = {'no', 'n'}
+    # choice = input('Use canny?[Y/n] ').lower()
 
-    while choice not in yes and choice not in no:
-        print('Sorry, did not quite catch that')
-        choice = input('Use canny?[Y/n] ').lower()
+    # while choice not in yes and choice not in no:
+    #     print('Sorry, did not quite catch that')
+    #     choice = input('Use canny?[Y/n] ').lower()
 
-    canny_mode = False
-    if choice in yes:
-        canny_mode = True
-        print("Canny mode activated")
-    else:
-        print("Black and White mode activated")
+    # canny_mode = False
+    # if choice in yes:
+    #     canny_mode = True
+    #     print("Canny mode activated")
+    # else:
+    #     print("Black and White mode activated")
 
-    img_type = 'canny' if canny_mode else 'bw'
+    # img_type = 'canny' if canny_mode else 'bw'
 
-    k = input('Number of neigbours: ')
+    # k = input('Number of neigbours: ')
 
-    while not k.isdigit() or int(k)==0:
-        print('Invalid number, must be a positive')
-        k = input('Number of neigbours: ')
+    # while not k.isdigit() or int(k)==0:
+    #     print('Invalid number, must be a positive')
+    #     k = input('Number of neigbours: ')
 
-    train_data_opencv(img_type, grades, int(k))
+    # train_data_opencv(img_type, grades, int(k))
 
-    ### PREDICTION ###
-    # file_path = input('File path: ')
+    ## PREDICTION ###
+    file_path = input('File name: ')
 
-    # file_path = '../' + file_path
+    file_path = '../uploads/' + file_path
 
-    # image = cv2.imread(file_path)
+    image = cv2.imread(file_path)
+    is_beras(image)
     # result = predict_image(image, 'canny', grades, 3)
     
     # result_grade = grades[result]

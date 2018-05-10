@@ -19,24 +19,6 @@ pip3 install opencv-python
 ```
 This will enable you to import `cv2`
 
-### Matplotlib
-Python3-tk is needed to use `pyplot` from `matplotlib`
-```
-sudo apt install python3-tk
-pip3 install matplotlib
-```
-This will enable you to import `pyplot`
-
-### Scikit-Learn
-```
-pip3 install scikit-learn
-```
-
-### Imutils
-```
-pip3 install imutils
-```
-
 ## Dataset
 Dataset subdirectories should be in the following format:
 ```

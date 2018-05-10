@@ -3,8 +3,6 @@ import glob
 import numpy as np
 import os
 
-from matplotlib import pyplot as plt
-
 def normalize_image(image, toCanny):
 
     image = cv2.resize(image, (500, 500))

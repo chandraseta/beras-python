@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request, redirect
 from werkzeug.utils import secure_filename
-from sklearn.externals import joblib
 
 import cv2
 import glob
@@ -11,13 +10,19 @@ import random
 UPLOAD_FOLDER = './uploads'
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg'])
 
+# Initiate Flask
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# Check for allowed extensions (png, jpg, jpeg)
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Normalize image by resizing (500 x 500) and preprocessing
+# Method == 1: Canny
+# Method == 2: Grayscale
+# Method == 3: Resize only
 def normalize_image(image, method):
     image = cv2.resize(image, (500, 500))
 
@@ -30,17 +35,19 @@ def normalize_image(image, method):
 
         # Automatically calculate lower and upper bound
         sigma = 0.33
-
         grey = np.median(image)
         lower = int(max(0, (1.0 - sigma) * grey))
         upper = int(min(255, (1.0 + sigma) * grey))
 
+        # Transform image using Canny
         image = cv2.Canny(image, lower, upper)
     elif (method == 2):
+        # Transform image to grayscale
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     return image
 
+# Get file
 def get_files(img_type, grade, training_set_size):
     files = glob.glob('./data/{}/{}/*'.format(img_type, grade))
     random.shuffle(files)
@@ -49,9 +56,11 @@ def get_files(img_type, grade, training_set_size):
 
     return training, prediction
 
+# Return a flat list of image's pixels
 def img_to_feature_vector(image):
     return image.flatten()
 
+# Extract histogram from image
 def extract_color_histogram(image, bins=(8,8,8)):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     hist = cv2.calcHist([hsv], [0,1,2], None, bins, [0, 180, 0, 256, 0, 256])
@@ -60,6 +69,7 @@ def extract_color_histogram(image, bins=(8,8,8)):
 
     return hist.flatten()
 
+# Generate training and testing sets
 def generate_sets(img_type, grades):
     training_raw_data = []
     training_labels = []
@@ -85,36 +95,14 @@ def generate_sets(img_type, grades):
 
     return training_raw_data, training_labels, prediction_raw_data, prediction_labels
 
+# PCA, to be used with eigen vector, not kNN
 def pca(images, num_component):
     mean, eigen_vector = cv2.PCACompute(images, mean=None, maxComponents=num_component)
     return mean, eigen_vector
 
-def train_data_opencv(img_type, grades, k=3):
-    training_raw_data, training_labels, prediction_raw_data, prediction_labels = generate_sets(img_type, grades)
-    training_raw_data = np.array(training_raw_data, dtype='f')
-    training_labels = np.array(training_labels, dtype='f')
-    prediction_raw_data = np.array(prediction_raw_data, dtype='f')
-    prediction_labels = np.array(prediction_labels, dtype='f')
-
-    print('Using KNN classifier with raw pixel')
-    knn = cv2.ml.KNearest_create()
-    knn.train(training_raw_data, cv2.ml.ROW_SAMPLE, training_labels)
-    print('Finished training')
-
-    print('Predicting images')
-    ret, results, neighbours, dist = knn.findNearest(prediction_raw_data, k)
-    
-    correct = 0
-    for i in range (len(prediction_labels)):
-        if results[i] == prediction_labels[i]:
-            print('Correctly identified image {}'.format(i))
-            correct += 1
-        
-    print("Got {} correct out of {}".format(correct, len(prediction_labels)))
-    print("Accuracy = {}%".format(correct/len(prediction_labels) * 100))
-
-    return (correct/len(prediction_labels) * 100)
-
+# Predict image based on img_type and k
+# img_type: canny or bw (black and white)
+# k: amount of neighbours
 def predict_image(image, img_type, grades, k=3):
     training_raw_data, training_labels, prediction_raw_data, prediction_labels = generate_sets(img_type, grades) 
     training_raw_data = np.array(training_raw_data, dtype='f')
@@ -124,6 +112,7 @@ def predict_image(image, img_type, grades, k=3):
 
     pixels = img_to_feature_vector(image)
 
+    # Compensate from 1 (Grayscale) to 3 channel (RGB)
     opt_pixel = []
     for pixel in pixels:
         opt_pixel.append(pixel)
@@ -133,32 +122,12 @@ def predict_image(image, img_type, grades, k=3):
     prediction_raw_data.append(opt_pixel)
     prediction_raw_data = np.array(prediction_raw_data, dtype='f')
 
-    print('Using KNN classifier with raw pixel')
+    # kNN with pixel values
     knn = cv2.ml.KNearest_create()
     knn.train(training_raw_data, cv2.ml.ROW_SAMPLE, training_labels)
     ret, results, neighbours, dist = knn.findNearest(prediction_raw_data, k)
     
     return results[0]
-
-def predict_image_sk(image, img_type, k=3):
-    if (img_type == 'canny'):
-        knn = joblib.load('./model/canny_knnHist.pkl')
-        
-        prediction_data = []
-        # Using hist
-        hist = extract_color_histogram(image)
-        prediction_data.append(hist)
-        
-        return (knn.predict(prediction_data)[0])
-    else:
-        knn = joblib.load('./model/bw_knnHist.pkl')
-
-        prediction_data = []
-        # Using hist
-        hist = extract_color_histogram(image)
-        prediction_data.append(hist)
-
-        return (knn.predict(prediction_data)[0])
 
 @app.route("/predict/",methods=["GET","POST"])
 def upload_file():
@@ -182,19 +151,19 @@ def upload_file():
             filename = secure_filename(file.filename) #TODO: Hash filename
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
+            # Receive uploaded file
             file.save(file_path)
             
-            #classify_image and return JSON
+            # Classify_image and return JSON
             grades = ['A', 'B', 'C']
             image = cv2.imread(file_path)
             print("Image shape: " + str(image.shape))
             processed_image = normalize_image(image, 2)
             
             result = predict_image(processed_image, 'bw', grades, 1)
-            # result = predict_image_sk(image, 'canny', 3)
-            
             result_grade = grades[int(result)]
 
+            # Cleanup
             os.remove(file_path)
 
             reply = {
