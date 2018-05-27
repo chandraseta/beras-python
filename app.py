@@ -103,8 +103,8 @@ def pca(images, num_component):
 # Predict image based on img_type and k
 # img_type: canny or bw (black and white)
 # k: amount of neighbours
-def predict_image(image, img_type, grades, k=3):
-    training_raw_data, training_labels, prediction_raw_data, prediction_labels = generate_sets(img_type, grades) 
+def predict_image(image, img_type, grades, k=1):
+    training_raw_data, training_labels, prediction_raw_data, prediction_labels = generate_sets(img_type, grades)
     training_raw_data = np.array(training_raw_data, dtype='f')
     training_labels = np.array(training_labels, dtype='f')
 
@@ -126,7 +126,7 @@ def predict_image(image, img_type, grades, k=3):
     knn = cv2.ml.KNearest_create()
     knn.train(training_raw_data, cv2.ml.ROW_SAMPLE, training_labels)
     ret, results, neighbours, dist = knn.findNearest(prediction_raw_data, k)
-    
+
     return results[0]
 
 @app.route("/predict/",methods=["GET","POST"])
@@ -153,13 +153,13 @@ def upload_file():
 
             # Receive uploaded file
             file.save(file_path)
-            
+
             # Classify_image and return JSON
             grades = ['A', 'B', 'C']
             image = cv2.imread(file_path)
             print("Image shape: " + str(image.shape))
             processed_image = normalize_image(image, 2)
-            
+
             result = predict_image(processed_image, 'bw', grades, 1)
             result_grade = grades[int(result)]
 
