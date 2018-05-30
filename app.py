@@ -24,7 +24,7 @@ def allowed_file(filename):
 # Method == 2: Grayscale
 # Method == 3: Resize only
 def normalize_image(image, method):
-    image = cv2.resize(image, (500, 500))
+    image = cv2.resize(image, (512, 512))
 
     if (method == 1):
         # Denoising
