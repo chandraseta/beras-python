@@ -24,7 +24,7 @@ def allowed_file(filename):
 # Method == 2: Grayscale
 # Method == 3: Resize only
 def normalize_image(image, method):
-    image = cv2.resize(image, (512, 512))
+    image = cv2.resize(image, (256, 256))
 
     if (method == 1):
         # Denoising
@@ -160,7 +160,7 @@ def upload_file():
             print("Image shape: " + str(image.shape))
             processed_image = normalize_image(image, 2)
 
-            result = predict_image(processed_image, 'canny', grades, 1)
+            result = predict_image(processed_image, 'bw', grades, 1)
             result_grade = grades[int(result)]
 
             # Cleanup
